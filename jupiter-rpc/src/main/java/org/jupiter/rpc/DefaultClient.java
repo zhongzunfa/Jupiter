@@ -42,12 +42,6 @@ import static org.jupiter.common.util.Preconditions.checkNotNull;
  */
 public class DefaultClient implements JClient {
 
-    static {
-        // touch off TracingUtil.<clinit>
-        // because getLocalAddress() and getPid() sometimes too slow
-        ClassUtil.initializeClass("org.jupiter.rpc.tracing.TracingUtil", 500);
-    }
-
     // 服务订阅(SPI)
     private final RegistryService registryService;
     private final String appName;
@@ -136,7 +130,7 @@ public class DefaultClient implements JClient {
 
                     @Override
                     public void notify(RegisterMeta registerMeta, NotifyEvent event) {
-                        UnresolvedAddress address = new UnresolvedAddress(registerMeta.getHost(), registerMeta.getPort());
+                        UnresolvedAddress address = new UnresolvedSocketAddress(registerMeta.getHost(), registerMeta.getPort());
                         final JChannelGroup group = connector.group(address);
                         if (event == NotifyEvent.CHILD_ADDED) {
                             if (group.isAvailable()) {

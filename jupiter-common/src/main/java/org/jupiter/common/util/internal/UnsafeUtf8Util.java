@@ -25,6 +25,8 @@ import static java.lang.Character.*;
  * jupiter
  * org.jupiter.common.util.internal
  *
+ * Forked from protobuf <A>https://github.com/protocolbuffers/protobuf<A/>.
+ *
  * @author jiachun.fjc
  */
 public final class UnsafeUtf8Util {
@@ -190,7 +192,7 @@ public final class UnsafeUtf8Util {
         return UnsafeUtil.moveToString(resultArr);
     }
 
-    public static int encodeUtf8(final CharSequence in, final byte[] out, final int offset, final int length) {
+    public static int encodeUtf8(CharSequence in, byte[] out, int offset, int length) {
         long outIx = offset;
         final long outLimit = outIx + length;
         final int inLimit = in.length();

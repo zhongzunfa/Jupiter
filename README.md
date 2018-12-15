@@ -1,6 +1,8 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](/LICENSE)
 [![Maven Central](https://img.shields.io/maven-central/v/org.jupiter-rpc/jupiter.svg?label=Maven%20Central)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.jupiter-rpc%22%20AND%20jupiter)
 [![Build Status](https://travis-ci.org/fengjiachun/Jupiter.svg?branch=master)](https://travis-ci.org/fengjiachun/Jupiter)
+[![Code Quality: Java](https://img.shields.io/lgtm/grade/java/g/fengjiachun/Jupiter.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/fengjiachun/Jupiter/context:java)
+[![Total Alerts](https://img.shields.io/lgtm/alerts/g/fengjiachun/Jupiter.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/fengjiachun/Jupiter/alerts)
 
 #### Jupiter:
 - Jupiter是一款性能非常不错的, 轻量级的分布式服务框架
@@ -37,8 +39,11 @@
 - [参考: 多个RPC框架的Benchmark见这里](https://github.com/hank-whu/rpc-benchmark)
 
 #### 文档:
+- [High performance RPC with netty](/docs/static_files/high_performance_rpc_with_netty.md)
+- [High performance RPC with netty.pdf](/docs/static_files/high_performance_rpc_with_netty.pdf)
 - [Wiki](https://github.com/fengjiachun/Jupiter/wiki)
 - [其他文档](https://github.com/fengjiachun/doc/tree/master/jupiter)
+- [发展路线](https://github.com/fengjiachun/Jupiter/wiki/RoadMap)
 
 #### 一次RPC调用:
 

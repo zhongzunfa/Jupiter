@@ -28,6 +28,7 @@ import org.jupiter.rpc.model.metadata.MethodSpecialConfig;
 import org.jupiter.serialization.SerializerType;
 import org.jupiter.transport.JConnector;
 import org.jupiter.transport.UnresolvedAddress;
+import org.jupiter.transport.UnresolvedSocketAddress;
 import org.jupiter.transport.exception.ConnectFailedException;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
@@ -51,6 +52,7 @@ public class JupiterSpringConsumerBean<T> implements FactoryBean<T>, Initializin
     private String version;                                     // 服务版本号, 通常在接口不兼容时版本号才需要升级
     private SerializerType serializerType;                      // 序列化/反序列化方式
     private LoadBalancerType loadBalancerType;                  // 软负载均衡类型
+    private String extLoadBalancerName;                         // 扩展软负载均衡唯一标识
     private long waitForAvailableTimeoutMillis = -1;            // 如果大于0, 表示阻塞等待直到连接可用并且该值为等待时间
 
     private transient T proxy;                                  // consumer代理对象
@@ -93,7 +95,7 @@ public class JupiterSpringConsumerBean<T> implements FactoryBean<T>, Initializin
         }
 
         if (loadBalancerType != null) {
-            factory.loadBalancerType(loadBalancerType);
+            factory.loadBalancerType(loadBalancerType, extLoadBalancerName);
         }
 
         if (client.isHasRegistryServer()) {
@@ -116,7 +118,7 @@ public class JupiterSpringConsumerBean<T> implements FactoryBean<T>, Initializin
                 String[] addressStr = Strings.split(s, ':');
                 String host = addressStr[0];
                 int port = Integer.parseInt(addressStr[1]);
-                UnresolvedAddress address = new UnresolvedAddress(host, port);
+                UnresolvedAddress address = new UnresolvedSocketAddress(host, port);
                 addresses.add(address);
             }
             factory.addProviderAddress(addresses);
@@ -203,6 +205,14 @@ public class JupiterSpringConsumerBean<T> implements FactoryBean<T>, Initializin
         if (this.loadBalancerType == null) {
             throw new IllegalArgumentException(loadBalancerType);
         }
+    }
+
+    public String getExtLoadBalancerName() {
+        return extLoadBalancerName;
+    }
+
+    public void setExtLoadBalancerName(String extLoadBalancerName) {
+        this.extLoadBalancerName = extLoadBalancerName;
     }
 
     public long getWaitForAvailableTimeoutMillis() {

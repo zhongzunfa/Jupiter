@@ -20,7 +20,9 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.WriteBufferWaterMark;
+import io.netty.channel.epoll.EpollChannelOption;
 import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollMode;
 import io.netty.channel.kqueue.KQueueEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import org.jupiter.common.util.JConstants;
@@ -71,10 +73,14 @@ public abstract class NettyTcpConnector extends NettyConnector {
 
         Bootstrap boot = bootstrap();
 
+        // child options
         NettyConfig.NettyTcpConfigGroup.ChildConfig child = childConfig;
 
-        // child options
-        boot.option(ChannelOption.SO_REUSEADDR, child.isReuseAddress())
+        WriteBufferWaterMark waterMark =
+                createWriteBufferWaterMark(child.getWriteBufferLowWaterMark(), child.getWriteBufferHighWaterMark());
+
+        boot.option(ChannelOption.WRITE_BUFFER_WATER_MARK, waterMark)
+                .option(ChannelOption.SO_REUSEADDR, child.isReuseAddress())
                 .option(ChannelOption.SO_KEEPALIVE, child.isKeepAlive())
                 .option(ChannelOption.TCP_NODELAY, child.isTcpNoDelay())
                 .option(ChannelOption.ALLOW_HALF_CLOSURE, child.isAllowHalfClosure());
@@ -93,15 +99,35 @@ public abstract class NettyTcpConnector extends NettyConnector {
         if (child.getConnectTimeoutMillis() > 0) {
             boot.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, child.getConnectTimeoutMillis());
         }
-        int bufLowWaterMark = child.getWriteBufferLowWaterMark();
-        int bufHighWaterMark = child.getWriteBufferHighWaterMark();
-        WriteBufferWaterMark waterMark;
-        if (bufLowWaterMark >= 0 && bufHighWaterMark > 0) {
-            waterMark = new WriteBufferWaterMark(bufLowWaterMark, bufHighWaterMark);
-        } else {
-            waterMark = new WriteBufferWaterMark(512 * 1024, 1024 * 1024);
+        if (child.getTcpNotSentLowAt() > 0) {
+            boot.option(EpollChannelOption.TCP_NOTSENT_LOWAT, child.getTcpNotSentLowAt());
         }
-        boot.option(ChannelOption.WRITE_BUFFER_WATER_MARK, waterMark);
+        if (child.getTcpKeepCnt() > 0) {
+            boot.option(EpollChannelOption.TCP_KEEPCNT, child.getTcpKeepCnt());
+        }
+        if (child.getTcpUserTimeout() > 0) {
+            boot.option(EpollChannelOption.TCP_USER_TIMEOUT, child.getTcpUserTimeout());
+        }
+        if (child.getTcpKeepIdle() > 0) {
+            boot.option(EpollChannelOption.TCP_KEEPIDLE, child.getTcpKeepIdle());
+        }
+        if (child.getTcpKeepInterval() > 0) {
+            boot.option(EpollChannelOption.TCP_KEEPINTVL, child.getTcpKeepInterval());
+        }
+        if (SocketChannelProvider.SocketType.NATIVE_EPOLL == socketType()) {
+            boot.option(EpollChannelOption.TCP_CORK, child.isTcpCork())
+                    .option(EpollChannelOption.TCP_QUICKACK, child.isTcpQuickAck())
+                    .option(EpollChannelOption.IP_TRANSPARENT, child.isIpTransparent());
+            if (child.isTcpFastOpenConnect()) {
+                // Requires Linux kernel 4.11 or later
+                boot.option(EpollChannelOption.TCP_FASTOPEN_CONNECT, child.isTcpFastOpenConnect());
+            }
+            if (child.isEdgeTriggered()) {
+                boot.option(EpollChannelOption.EPOLL_MODE, EpollMode.EDGE_TRIGGERED);
+            } else {
+                boot.option(EpollChannelOption.EPOLL_MODE, EpollMode.LEVEL_TRIGGERED);
+            }
+        }
     }
 
     @Override
@@ -128,7 +154,7 @@ public abstract class NettyTcpConnector extends NettyConnector {
 
     @Override
     protected EventLoopGroup initEventLoopGroup(int nThreads, ThreadFactory tFactory) {
-        TcpChannelProvider.SocketType socketType = socketType();
+        SocketChannelProvider.SocketType socketType = socketType();
         switch (socketType) {
             case NATIVE_EPOLL:
                 return new EpollEventLoopGroup(nThreads, tFactory);
@@ -142,32 +168,32 @@ public abstract class NettyTcpConnector extends NettyConnector {
     }
 
     protected void initChannelFactory() {
-        TcpChannelProvider.SocketType socketType = socketType();
+        SocketChannelProvider.SocketType socketType = socketType();
         switch (socketType) {
             case NATIVE_EPOLL:
-                bootstrap().channelFactory(TcpChannelProvider.NATIVE_EPOLL_CONNECTOR);
+                bootstrap().channelFactory(SocketChannelProvider.NATIVE_EPOLL_CONNECTOR);
                 break;
             case NATIVE_KQUEUE:
-                bootstrap().channelFactory(TcpChannelProvider.NATIVE_KQUEUE_CONNECTOR);
+                bootstrap().channelFactory(SocketChannelProvider.NATIVE_KQUEUE_CONNECTOR);
                 break;
             case JAVA_NIO:
-                bootstrap().channelFactory(TcpChannelProvider.JAVA_NIO_CONNECTOR);
+                bootstrap().channelFactory(SocketChannelProvider.JAVA_NIO_CONNECTOR);
                 break;
             default:
                 throw new IllegalStateException("Invalid socket type: " + socketType);
         }
     }
 
-    private TcpChannelProvider.SocketType socketType() {
+    protected SocketChannelProvider.SocketType socketType() {
         if (isNative && NativeSupport.isNativeEPollAvailable()) {
             // netty provides the native socket transport for Linux using JNI.
-            return TcpChannelProvider.SocketType.NATIVE_EPOLL;
+            return SocketChannelProvider.SocketType.NATIVE_EPOLL;
         }
         if (isNative && NativeSupport.isNativeKQueueAvailable()) {
             // netty provides the native socket transport for BSD systems such as MacOS using JNI.
-            return TcpChannelProvider.SocketType.NATIVE_KQUEUE;
+            return SocketChannelProvider.SocketType.NATIVE_KQUEUE;
         }
-        return TcpChannelProvider.SocketType.JAVA_NIO;
+        return SocketChannelProvider.SocketType.JAVA_NIO;
     }
 
     @Override
